@@ -215,7 +215,8 @@ try:
         lit(ATHLETE_ID).alias("athlete_id"),
         lit("ridewithgps").alias("source_system"),
         col("trip_id").cast("string").alias("source_id"),
-        col("started_at").alias("start_time"),
+        # started_at is null in RWGPS API — use created_at as fallback
+        coalesce(col("started_at"), col("created_at")).alias("start_time"),
         col("duration").cast("int").alias("duration_sec"),
         col("distance").alias("distance_m"),
         col("elevation_gain").alias("elevation_gain_m"),
