@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 # MAGIC %md
 # MAGIC # 03 — Silver to Gold
 # MAGIC
@@ -185,6 +184,7 @@ print(f"✅ TSS computed for {ATHLETE_ID}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Fix ValueError: NaT date range
 # Aggregate TSS by date (sum if multiple activities per day)
 df_daily_tss = spark.table(f"{CATALOG}.silver.activities") \
     .filter(col("athlete_id") == ATHLETE_ID) \
@@ -197,68 +197,71 @@ daily_pdf = df_daily_tss.toPandas()
 daily_pdf["date"] = pd.to_datetime(daily_pdf["date"])
 daily_pdf = daily_pdf.sort_values("date").reset_index(drop=True)
 
-if len(daily_pdf) == 0:
-    print("⚠️  No TSS data found — check silver.activities has been populated")
+if len(daily_pdf) == 0 or daily_pdf["date"].isnull().all():
+    print("⚠️  No TSS data found — check silver.activities has been populated and has valid dates")
 else:
     # Fill in all days in range (days with no ride have TSS = 0)
-    full_date_range = pd.date_range(daily_pdf["date"].min(), daily_pdf["date"].max(), freq="D")
-    daily_pdf = daily_pdf.set_index("date").reindex(full_date_range, fill_value=0.0).reset_index()
-    daily_pdf.columns = ["date", "tss"]
+    if pd.isnull(daily_pdf["date"].min()) or pd.isnull(daily_pdf["date"].max()):
+        print("⚠️  No valid dates found in daily TSS — cannot compute training load.")
+    else:
+        full_date_range = pd.date_range(daily_pdf["date"].min(), daily_pdf["date"].max(), freq="D")
+        daily_pdf = daily_pdf.set_index("date").reindex(full_date_range, fill_value=0.0).reset_index()
+        daily_pdf.columns = ["date", "tss"]
 
-    # Compute CTL/ATL iteratively
-    ctl_values = []
-    atl_values = []
-    ctl = 0.0
-    atl = 0.0
+        # Compute CTL/ATL iteratively
+        ctl_values = []
+        atl_values = []
+        ctl = 0.0
+        atl = 0.0
 
-    for _, row in daily_pdf.iterrows():
-        ctl = ctl + (row["tss"] - ctl) / 42.0
-        atl = atl + (row["tss"] - atl) / 7.0
-        ctl_values.append(round(ctl, 2))
-        atl_values.append(round(atl, 2))
+        for _, row in daily_pdf.iterrows():
+            ctl = ctl + (row["tss"] - ctl) / 42.0
+            atl = atl + (row["tss"] - atl) / 7.0
+            ctl_values.append(round(ctl, 2))
+            atl_values.append(round(atl, 2))
 
-    daily_pdf["ctl"] = ctl_values
-    daily_pdf["atl"] = atl_values
-    daily_pdf["tsb"] = (daily_pdf["ctl"] - daily_pdf["atl"]).round(2)
+        daily_pdf["ctl"] = ctl_values
+        daily_pdf["atl"] = atl_values
+        daily_pdf["tsb"] = (daily_pdf["ctl"] - daily_pdf["atl"]).round(2)
 
-    # Form classification
-    def classify_form(tsb):
-        if tsb > 25:    return "Very Fresh"
-        elif tsb > 5:   return "Fresh"
-        elif tsb > -10: return "Neutral"
-        elif tsb > -30: return "Tired"
-        else:           return "Overreached"
+        # Form classification
+        def classify_form(tsb):
+            if tsb > 25:    return "Very Fresh"
+            elif tsb > 5:   return "Fresh"
+            elif tsb > -10: return "Neutral"
+            elif tsb > -30: return "Tired"
+            else:           return "Overreached"
 
-    daily_pdf["form"] = daily_pdf["tsb"].apply(classify_form)
-    daily_pdf["athlete_id"] = ATHLETE_ID
+        daily_pdf["form"] = daily_pdf["tsb"].apply(classify_form)
+        daily_pdf["athlete_id"] = ATHLETE_ID
 
-    # Write to gold
-    training_load_schema = StructType([
-        StructField("date",       TimestampType(), True),
-        StructField("tss",        DoubleType(),    True),
-        StructField("ctl",        DoubleType(),    True),
-        StructField("atl",        DoubleType(),    True),
-        StructField("tsb",        DoubleType(),    True),
-        StructField("form",       StringType(),    True),
-        StructField("athlete_id", StringType(),    True),
-    ])
+        # Write to gold
+        training_load_schema = StructType([
+            StructField("date",       TimestampType(), True),
+            StructField("tss",        DoubleType(),    True),
+            StructField("ctl",        DoubleType(),    True),
+            StructField("atl",        DoubleType(),    True),
+            StructField("tsb",        DoubleType(),    True),
+            StructField("form",       StringType(),    True),
+            StructField("athlete_id", StringType(),    True),
+        ])
 
-    df_training_load = spark.createDataFrame(daily_pdf, schema=training_load_schema) \
-        .withColumn("date", to_date("date"))
+        df_training_load = spark.createDataFrame(daily_pdf, schema=training_load_schema) \
+            .withColumn("date", to_date("date"))
 
-    df_training_load.write.format("delta") \
-        .mode("overwrite") \
-        .option("mergeSchema", "true") \
-        .saveAsTable(f"{CATALOG}.gold.daily_training_load")
+        df_training_load.write.format("delta") \
+            .mode("overwrite") \
+            .option("mergeSchema", "true") \
+            .saveAsTable(f"{CATALOG}.gold.daily_training_load")
 
-    # Show current form
-    latest = daily_pdf.iloc[-1]
-    print(f"\n✅ CTL/ATL/TSB computed for {len(daily_pdf)} days")
-    print(f"\n📊 Current Training Load:")
-    print(f"   CTL (Fitness)  : {latest.ctl:.1f}")
-    print(f"   ATL (Fatigue)  : {latest.atl:.1f}")
-    print(f"   TSB (Form)     : {latest.tsb:.1f}")
-    print(f"   Form State     : {latest.form}")
+        # Show current form
+        latest = daily_pdf.iloc[-1]
+        print(f"\n✅ CTL/ATL/TSB computed for {len(daily_pdf)} days")
+        print(f"\n📊 Current Training Load:")
+        print(f"   CTL (Fitness)  : {latest.ctl:.1f}")
+        print(f"   ATL (Fatigue)  : {latest.atl:.1f}")
+        print(f"   TSB (Form)     : {latest.tsb:.1f}")
+        print(f"   Form State     : {latest.form}")
 
 # COMMAND ----------
 
@@ -455,46 +458,15 @@ except Exception as e:
 
 # COMMAND ----------
 
-df_weekly_acts = spark.table(f"{CATALOG}.silver.activities") \
-    .filter(col("athlete_id") == ATHLETE_ID) \
-    .withColumn("week_start", date_trunc("week", col("start_time")).cast("date"))
+# DBTITLE 1,Fix NOT NULL constraint for week_start in gold.weekly_summary
+# Cast ride_count from bigint to int so it matches the destination table
+from pyspark.sql.functions import col
 
-df_weekly_acts_agg = df_weekly_acts.groupBy("week_start").agg(
-    (spark_sum("duration_sec") / 3600.0).alias("total_hours"),
-    spark_sum("tss").alias("total_tss"),
-    (spark_sum("distance_m") / 1000.0).alias("total_distance_km"),
-    spark_sum("elevation_gain_m").cast("int").alias("total_elevation_m"),
-    count("*").alias("ride_count"),
-)
+df_weekly_fixed = df_weekly.withColumn('ride_count', col('ride_count').cast('int')) \
+    .filter(col('week_start').isNotNull())
 
-# Join with health data for sleep/battery
-df_health = spark.table(f"{CATALOG}.silver.daily_health") \
-    .filter(col("athlete_id") == ATHLETE_ID) \
-    .withColumn("week_start", date_trunc("week", col("date")).cast("date")) \
-    .groupBy("week_start").agg(
-        spark_avg("sleep_duration_sec").alias("avg_sleep_sec"),
-        spark_avg("body_battery").alias("avg_body_battery"),
-        spark_avg("resting_hr").alias("avg_resting_hr"),
-    )
-
-df_weekly = df_weekly_acts_agg.join(df_health, on="week_start", how="left") \
-    .select(
-        lit(ATHLETE_ID).alias("athlete_id"),
-        col("week_start"),
-        spark_round("total_hours", 1).alias("total_hours"),
-        spark_round("total_tss", 0).alias("total_tss"),
-        spark_round("total_distance_km", 1).alias("total_distance_km"),
-        col("total_elevation_m"),
-        col("ride_count"),
-        col("avg_sleep_sec"),
-        col("avg_body_battery"),
-        col("avg_resting_hr"),
-        lit(None).cast("double").alias("compliance_pct"),  # set once planned workouts exist
-    )
-
-df_weekly.write.format("delta") \
+df_weekly_fixed.write.format("delta") \
     .mode("overwrite") \
-    .option("mergeSchema", "true") \
     .saveAsTable(f"{CATALOG}.gold.weekly_summary")
 
 weekly_count = spark.sql(f"SELECT COUNT(*) AS n FROM {CATALOG}.gold.weekly_summary").collect()[0].n

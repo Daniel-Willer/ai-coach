@@ -525,6 +525,7 @@ with mlflow.start_run(run_name="coaching-agent-v1"):
 
 # COMMAND ----------
 
+# DBTITLE 1,Untitled
 # ── ASK YOUR COACH ANYTHING ─────────────────────────────────────────────────
 question = "How am I doing? Give me a full overview of where my fitness is at right now."
 # ─────────────────────────────────────────────────────────────────────────────
