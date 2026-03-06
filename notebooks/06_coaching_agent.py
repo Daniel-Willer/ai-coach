@@ -34,7 +34,7 @@ ATHLETE_ID = "athlete_1"  # change to match your athlete_id from notebook 05
 #   "databricks-meta-llama-3-3-70b-instruct"  ← latest Llama
 #   "databricks-dbrx-instruct"                 ← Databricks' own model
 #   "databricks-mixtral-8x7b-instruct"         ← faster, lighter
-LLM_ENDPOINT = "databricks-meta-llama-3-1-70b-instruct"
+LLM_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"
 
 print(f"Catalog:    {CATALOG}")
 print(f"Athlete:    {ATHLETE_ID}")
