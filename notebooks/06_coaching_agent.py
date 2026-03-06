@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 # MAGIC %md
 # MAGIC # 06 — AI Cycling Coach Agent
 # MAGIC
@@ -15,7 +14,8 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install databricks-langchain langchain langchain-core mlflow -q
+# DBTITLE 1,%pip install databricks-langchain langchain langchain-core mlflow -q (version fix)
+# MAGIC %pip install databricks-langchain langchain>=0.1.0 langchain-core mlflow -q
 
 # COMMAND ----------
 
@@ -421,6 +421,7 @@ print(f"✅ {len(coaching_tools)} coaching tools registered")
 
 # COMMAND ----------
 
+# DBTITLE 1,Build agent with available API (minimal fix)
 from databricks_langchain import ChatDatabricks
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
