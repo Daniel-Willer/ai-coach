@@ -14,8 +14,7 @@
 
 # COMMAND ----------
 
-# DBTITLE 1,%pip install databricks-langchain langchain langchain-core mlflow -q (version fix)
-# MAGIC %pip install databricks-langchain langchain>=0.1.0 langchain-core mlflow -q
+# MAGIC %pip install databricks-langchain langchain-core mlflow -q
 
 # COMMAND ----------
 
@@ -421,21 +420,23 @@ print(f"✅ {len(coaching_tools)} coaching tools registered")
 
 # COMMAND ----------
 
-# DBTITLE 1,Build agent with available API (minimal fix)
 from databricks_langchain import ChatDatabricks
-from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 import mlflow
 
 # Connect to Databricks Foundation Models API
 llm = ChatDatabricks(
     endpoint=LLM_ENDPOINT,
-    temperature=0.3,       # low temp for consistent, factual coaching advice
+    temperature=0.3,
     max_tokens=1500,
 )
 
-# System prompt — defines the coach's persona and behavior
+# Bind tools directly to the LLM — no langchain.agents needed
+llm_with_tools = llm.bind_tools(coaching_tools)
+
+# Tool lookup by name for execution
+tool_registry = {t.name: t for t in coaching_tools}
+
 SYSTEM_PROMPT = f"""You are an expert AI cycling coach with deep knowledge of training science, physiology, and competitive cycling. You are coaching athlete_id='{ATHLETE_ID}'.
 
 Your coaching philosophy:
@@ -463,22 +464,37 @@ Format:
 - End actionable responses with a clear "Next:" recommendation
 """
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
-    MessagesPlaceholder(variable_name="chat_history", optional=True),
-    ("human", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
+def run_agent(question: str, chat_history: list = [], verbose: bool = True) -> str:
+    """
+    Tool-calling agent loop using bind_tools() — no langchain.agents dependency.
+    Calls tools until the LLM produces a final text response (no more tool calls).
+    """
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + chat_history + [HumanMessage(content=question)]
 
-# Build agent
-agent = create_tool_calling_agent(llm, coaching_tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent,
-    tools=coaching_tools,
-    verbose=True,            # set False to hide tool call reasoning
-    max_iterations=6,        # max tool calls per response
-    handle_parsing_errors=True,
-)
+    for iteration in range(6):  # max 6 tool-call rounds
+        response = llm_with_tools.invoke(messages)
+        messages.append(response)
+
+        if not response.tool_calls:
+            # LLM is done — return the final answer
+            return response.content
+
+        # Execute each tool call and feed results back
+        for tc in response.tool_calls:
+            tool_name = tc["name"]
+            tool_args = tc["args"]
+
+            if verbose:
+                print(f"  → calling {tool_name}({tool_args})")
+
+            if tool_name in tool_registry:
+                result = tool_registry[tool_name].invoke(tool_args)
+            else:
+                result = f"Tool '{tool_name}' not found."
+
+            messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
+
+    return "Agent reached max iterations without a final response."
 
 print("✅ Coaching agent ready")
 
@@ -495,7 +511,7 @@ with mlflow.start_run(run_name="coaching-agent-v1"):
         "llm_endpoint": LLM_ENDPOINT,
         "athlete_id": ATHLETE_ID,
         "num_tools": len(coaching_tools),
-        "tool_names": [t.name for t in coaching_tools],
+        "tool_names": str([t.name for t in coaching_tools]),
     })
     mlflow.set_tag("phase", "2-coaching-agent")
     print("✅ Agent logged to MLflow")
@@ -513,11 +529,11 @@ with mlflow.start_run(run_name="coaching-agent-v1"):
 question = "How am I doing? Give me a full overview of where my fitness is at right now."
 # ─────────────────────────────────────────────────────────────────────────────
 
-response = agent_executor.invoke({"input": question})
+answer = run_agent(question, verbose=True)
 print("\n" + "="*60)
 print("COACH:")
 print("="*60)
-print(response["output"])
+print(answer)
 
 # COMMAND ----------
 
@@ -533,11 +549,7 @@ chat_history = []
 
 def ask_coach(question: str) -> str:
     """Send a message to the coach and maintain conversation history."""
-    response = agent_executor.invoke({
-        "input": question,
-        "chat_history": chat_history,
-    })
-    answer = response["output"]
+    answer = run_agent(question, chat_history=chat_history, verbose=False)
 
     # Update history
     chat_history.append(HumanMessage(content=question))
