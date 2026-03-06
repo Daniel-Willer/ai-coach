@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 # MAGIC %md
 # MAGIC # 01 — Strava → Bronze
 # MAGIC
@@ -18,13 +17,13 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Pipeline Configuration: Full Backfill
 CATALOG = "ai_coach"
 
-# How many days back to look for new activities (use 3650 for initial full backfill)
-DAYS_BACK = dbutils.widgets.get("days_back") if "days_back" in [w.name for w in dbutils.widgets.getAll()] else "90"
-DAYS_BACK = int(DAYS_BACK)
+# Set DAYS_BACK to 3650 for a full historical backfill
+DAYS_BACK = 3650
 
-# Fetch streams for rides with power data (slower — set False to skip on first run)
+# Fetch streams for rides with power data
 FETCH_STREAMS = True
 
 # Stream types to fetch

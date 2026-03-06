@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 # MAGIC %md
 # MAGIC # 05 — Athlete Setup & Onboarding
 # MAGIC
@@ -18,12 +17,12 @@
 
 # Add widgets for easy configuration in Databricks UI
 dbutils.widgets.text("athlete_id",         "athlete_1",        "Athlete ID")
-dbutils.widgets.text("name",               "Your Name",        "Full Name")
+dbutils.widgets.text("name",               "Mr. Willer",        "Full Name")
 dbutils.widgets.text("strava_id",          "",                 "Strava ID (optional)")
 dbutils.widgets.text("garmin_id",          "",                 "Garmin ID (optional)")
-dbutils.widgets.text("ftp_watts",          "250",              "FTP (watts)")
-dbutils.widgets.text("weight_kg",          "75",               "Weight (kg)")
-dbutils.widgets.text("birth_year",         "1990",             "Birth Year")
+dbutils.widgets.text("ftp_watts",          "235",              "FTP (watts)")
+dbutils.widgets.text("weight_kg",          "83",               "Weight (kg)")
+dbutils.widgets.text("birth_year",         "1991",             "Birth Year")
 dbutils.widgets.text("gender",             "M",                "Gender (M/F)")
 dbutils.widgets.text("fitness_level",      "Intermediate",     "Fitness Level (Beginner/Intermediate/Advanced/Elite)")
 dbutils.widgets.text("available_hours",    "8",                "Available Training Hours/Week")
