@@ -603,7 +603,7 @@ print("COACH:", response2)
 
 # COMMAND ----------
 
-response3 = ask_coach("What should I do tomorrow given my current form?")
+response3 = ask_coach("What should I do tomorrow given my current form? Look a little further back in my data - look specifically at rides that were at least an hour. The short ones are just commtes. There should be some zwift rides in the data too")
 print("COACH:", response3)
 
 # COMMAND ----------

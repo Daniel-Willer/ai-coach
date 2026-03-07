@@ -22,9 +22,17 @@ The data collected will be used exclusively for the following purposes:
 * **Personal Analysis**: To analyze and visualize my own fitness and health trends.
 * **AI Agent Development**: To securely train and test AI Agents within my private Databricks environment. These agents are for my personal use only and will not be used for commercial purposes.
 
-### 5. Data Storage and Security
-All data will be stored securely in a private Databricks environment. I will take reasonable precautions to protect the data from unauthorized access or disclosure. This includes storing any API credentials securely as Databricks secrets.
+---
+### 5. Architecture, Data, and Security
+* **Delta Lake Architecture**: Athlete profiles, goals/events, activities, and health data are stored in modular Delta tables. Profiles and goals are now loaded from YAML files for improved scalability and manageability.
+* **Privacy & Security**: All API credentials and personal data are secured via Databricks secrets and private workspace storage. No data is shared outside this environment.
+* **AI Agent Workflow**: AI coaching agents query Delta tables for athlete profiles, goals, and training metrics using secure, structured tools. They do not directly access raw data or external connections.
+* **Data Gaps Guidance**: If AI outputs indicate missing power, heart rate, or activity metrics:
+    - Check source Garmin/Strava API and bronze/raw tables for these columns and non-null values
+    - Verify ETL pipelines correctly extract, map, and write these fields to silver/gold layers
+    - Use power meters or HR monitors as needed to enrich activity files
 
+---
 ### 6. Data Sharing
 Your data will **not be shared, sold, or distributed** to any third parties. It is for personal, non-commercial use only.
 
@@ -32,4 +40,4 @@ Your data will **not be shared, sold, or distributed** to any third parties. It 
 By authorizing this application to access your Garmin Connect account, you are providing consent for the collection and use of your data as described in this policy.
 
 ### 8. Contact
-If you have any questions or concerns about this privacy policy or the use of your data, you can contact me via Github.
+If you have any questions or concerns about this privacy policy, architecture, or the use of your data, you can contact me via Github.

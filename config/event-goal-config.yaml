@@ -1,0 +1,13 @@
+- event_name: Gran Fondo Whistler
+  event_date: "2026-07-20"
+  priority: A
+  event_type: Race
+  target: "Finish under 5h"
+  notes: "Main season goal"
+
+- event_name: Fall Adventure
+  event_date: "2026-09-15"
+  priority: B
+  event_type: Adventure
+  target: "Complete 150km route"
+  notes: "Test endurance"

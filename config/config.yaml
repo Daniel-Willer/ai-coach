@@ -1,0 +1,15 @@
+athlete_id: willer01
+name: Mr. Willer
+strava_id: ""
+garmin_id: ""
+ftp_watts: 280
+weight_kg: 70.0
+birth_year: 1985
+gender: Male
+fitness_level: Intermediate
+available_hours: 9
+max_hr: 182
+resting_hr: 55
+lthr: 154
+training_goal: Build cycling fitness for a gran fondo
+injury_history: None

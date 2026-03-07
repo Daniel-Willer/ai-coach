@@ -15,22 +15,40 @@
 
 # COMMAND ----------
 
-# Add widgets for easy configuration in Databricks UI
-dbutils.widgets.text("athlete_id",         "athlete_1",        "Athlete ID")
-dbutils.widgets.text("name",               "Mr. Willer",        "Full Name")
-dbutils.widgets.text("strava_id",          "",                 "Strava ID (optional)")
-dbutils.widgets.text("garmin_id",          "",                 "Garmin ID (optional)")
-dbutils.widgets.text("ftp_watts",          "235",              "FTP (watts)")
-dbutils.widgets.text("weight_kg",          "83",               "Weight (kg)")
-dbutils.widgets.text("birth_year",         "1991",             "Birth Year")
-dbutils.widgets.text("gender",             "M",                "Gender (M/F)")
-dbutils.widgets.text("fitness_level",      "Intermediate",     "Fitness Level (Beginner/Intermediate/Advanced/Elite)")
-dbutils.widgets.text("available_hours",    "8",                "Available Training Hours/Week")
-dbutils.widgets.text("max_hr",             "185",              "Max Heart Rate (bpm)")
-dbutils.widgets.text("resting_hr",         "55",               "Resting Heart Rate (bpm)")
-dbutils.widgets.text("lthr",               "165",              "Lactate Threshold HR (bpm)")
-dbutils.widgets.text("training_goal",      "Build cycling fitness for a gran fondo", "Training Goal")
-dbutils.widgets.text("injury_history",     "None",             "Injury History")
+# Athlete Profile Configuration — now loaded from config.yaml
+# Place config.yaml in /Users/danielwiller38@gmail.com/ai-coach/config/config.yaml
+import yaml
+import os
+
+CONFIG_PATH = "/Workspace/Users/danielwiller38@gmail.com/ai-coach/config/config.yaml"
+assert os.path.exists(CONFIG_PATH), f"Config file not found: {CONFIG_PATH}"
+
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+if config is None:
+    raise ValueError(f"Config file is empty or invalid YAML: {CONFIG_PATH}")
+
+ATHLETE_ID      = config["athlete_id"]
+NAME            = config["name"]
+STRAVA_ID       = config.get("strava_id", None)
+GARMIN_ID       = config.get("garmin_id", None)
+FTP             = int(config["ftp_watts"])
+WEIGHT_KG       = float(config["weight_kg"])
+BIRTH_YEAR      = int(config["birth_year"])
+GENDER          = config["gender"]
+FITNESS_LEVEL   = config["fitness_level"]
+AVAIL_HOURS     = int(config["available_hours"])
+MAX_HR          = int(config["max_hr"])
+RESTING_HR      = int(config["resting_hr"])
+LTHR            = int(config["lthr"])
+TRAINING_GOAL   = config["training_goal"]
+INJURY_HISTORY  = config.get("injury_history", None)
+
+print(f"Loaded athlete profile for: {NAME} ({ATHLETE_ID})")
+print(f"FTP: {FTP}W | Weight: {WEIGHT_KG}kg | Available: {AVAIL_HOURS}h/week")
+
+# Optionally remove all dbutils.widgets code (fully YAML driven)
+# (if you wish to keep widgets for UI updates, retain them as-is for separate profile entry)
 
 # COMMAND ----------
 
@@ -142,26 +160,30 @@ print(f"✅ Athlete record saved: {NAME} ({ATHLETE_ID})")
 
 # COMMAND ----------
 
-# ── EDIT THIS LIST WITH YOUR ACTUAL EVENTS ──────────────────────────────────
-GOAL_EVENTS = [
-    {
-        "event_name": "Example Gran Fondo",
-        "event_date": date(2025, 9, 15),
-        "priority":   "A",
-        "event_type": "Gran Fondo",
-        "target":     "Finish strong, sub-5 hours",
-        "notes":      "Hilly course, ~120 miles",
-    },
-    # Add more events:
-    # {
-    #     "event_name": "Local Criterium",
-    #     "event_date": date(2025, 7, 4),
-    #     "priority":   "B",
-    #     "event_type": "Race",
-    #     "target":     "Top 10 finish",
-    #     "notes":      "",
-    # },
-]
+# ── LOAD GOALS FROM YAML ──────────────────────────────────
+import yaml
+import os
+from datetime import datetime, date
+import uuid
+
+goals_path = "/Users/danielwiller38@gmail.com/ai-coach/config/event-goal-config.yaml"
+if os.path.exists(goals_path):
+    with open(goals_path, "r") as f:
+        yaml_goals = yaml.safe_load(f)
+    GOAL_EVENTS = []
+    for g in yaml_goals:
+        event_date = datetime.strptime(g["event_date"], "%Y-%m-%d").date() if isinstance(g["event_date"], str) else g["event_date"]
+        GOAL_EVENTS.append({
+            "event_name": g["event_name"],
+            "event_date": event_date,
+            "priority":   g["priority"],
+            "event_type": g.get("event_type", "Other"),
+            "target":     g.get("target", ""),
+            "notes":      g.get("notes", ""),
+        })
+else:
+    GOAL_EVENTS = []
+    print(f"⚠️  Goals YAML file not found: {goals_path} — edit goals in code or create the file to use YAML.")
 # ─────────────────────────────────────────────────────────────────────────────
 
 if GOAL_EVENTS:
@@ -198,7 +220,7 @@ if GOAL_EVENTS:
     for g in GOAL_EVENTS:
         print(f"   [{g['priority']}] {g['event_name']} — {g['event_date']}")
 else:
-    print("No goal events defined. Edit GOAL_EVENTS list above and re-run.")
+    print("No goal events defined. Edit event-goal-config.yaml or GOAL_EVENTS list above and re-run.")
 
 # COMMAND ----------
 
