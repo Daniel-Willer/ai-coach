@@ -42,6 +42,26 @@ print(f"Athlete:  {ATHLETE_ID}")
 from pyspark.sql import SparkSession
 spark = SparkSession.builder.getOrCreate()
 
+# ── Ensure correct schema ────────────────────────────────────────────────────
+# If planned_workouts was previously created with duration_min INT (type mismatch),
+# Delta will reject DOUBLE writes. Drop and recreate to fix.
+
+def _col_type(catalog, schema, table, col_name):
+    try:
+        rows = spark.sql(f"DESCRIBE TABLE {catalog}.{schema}.{table}").collect()
+        for r in rows:
+            if r["col_name"] == col_name:
+                return r["data_type"].upper()
+    except Exception:
+        pass
+    return None
+
+# Check for type conflict on planned_workouts.duration_min
+existing_type = _col_type(CATALOG, "coach", "planned_workouts", "duration_min")
+if existing_type is not None and existing_type != "DOUBLE":
+    print(f"⚠️  planned_workouts.duration_min is {existing_type}, expected DOUBLE — dropping and recreating table")
+    spark.sql(f"DROP TABLE IF EXISTS {CATALOG}.coach.planned_workouts")
+
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {CATALOG}.coach.training_plans (
     plan_id         STRING NOT NULL,
@@ -426,6 +446,7 @@ def generate_and_save_plan(athlete_id: str, dry_run: bool = False):
 # COMMAND ----------
 
 # Generate the plan (set dry_run=True to preview first)
+plan_id = None
 plan_id = generate_and_save_plan(ATHLETE_ID, dry_run=False)
 
 # COMMAND ----------
