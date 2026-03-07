@@ -213,21 +213,6 @@ elif _test.status_code == 401:
 else:
     print(f"Unexpected status {_test.status_code}: {_test.text}")
 
-# COMMAND ----------
-
-  import requests                                           
-                                                                                                                                                        
-  r = requests.post("https://www.strava.com/oauth/token", data={                                                                                        
-      "client_id":     dbutils.secrets.get(scope="strava", key="client_id"),                                                                            
-      "client_secret": dbutils.secrets.get(scope="strava", key="client_secret"),                                                                        
-      "code":          "40ce8d74e6fe73e4b6ea819276c9b213561c9e63",   # ← the code from the URL
-      "grant_type":    "authorization_code",                                                                                                            
-  })                                                        
-                                                                                                                                                        
-  data = r.json()                                                                                                                                       
-  print("Status:", r.status_code)
-  print("Scope granted:", data.get("scope"))                                                                                                            
-  print("New refresh_token:", data.get("refresh_token"))    
 
 # COMMAND ----------
 
