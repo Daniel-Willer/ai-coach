@@ -128,6 +128,79 @@ class StravaClient:
 
 # COMMAND ----------
 
+# MAGIC %md ## Diagnostics — Token Scope Check
+# MAGIC
+# MAGIC Run this cell to confirm which OAuth scopes your current refresh_token has.
+# MAGIC If `activity:read_all` is missing, follow the re-authorization URL printed below.
+
+# COMMAND ----------
+
+# DBTITLE 1,Diagnose token scope + activities permission
+import requests as _req
+
+_client_id = dbutils.secrets.get(scope="strava", key="client_id")
+_client_secret = dbutils.secrets.get(scope="strava", key="client_secret")
+_refresh_token = dbutils.secrets.get(scope="strava", key="refresh_token")
+
+# Refresh and inspect the full token response
+_resp = _req.post("https://www.strava.com/oauth/token", data={
+    "client_id": _client_id,
+    "client_secret": _client_secret,
+    "refresh_token": _refresh_token,
+    "grant_type": "refresh_token",
+})
+
+print(f"Token refresh status: {_resp.status_code}")
+_tokens = _resp.json()
+_access_token = _tokens.get("access_token")
+
+# Strava doesn't return scope in the refresh response, but we can probe directly
+_test = _req.get(
+    "https://www.strava.com/api/v3/athlete/activities",
+    headers={"Authorization": f"Bearer {_access_token}"},
+    params={"per_page": 1, "page": 1}
+)
+
+print(f"\nActivities endpoint status: {_test.status_code}")
+if _test.status_code == 200:
+    print("✅ Token has activity:read_all scope — activities endpoint works")
+    print(f"   Response: {len(_test.json())} activity returned")
+elif _test.status_code == 401:
+    print("❌ 401 Unauthorized on activities — token is missing activity:read_all scope")
+    print(f"   Error body: {_test.text}")
+    print()
+    print("=" * 70)
+    print("FIX: Re-authorize your Strava app with the correct scopes.")
+    print("1. Open this URL in your browser (replace YOUR_CLIENT_ID):")
+    print()
+    print(f"   https://www.strava.com/oauth/authorize"
+          f"?client_id={_client_id}"
+          f"&redirect_uri=http://localhost"
+          f"&response_type=code"
+          f"&scope=read,activity:read_all")
+    print()
+    print("2. Authorize the app — Strava redirects to:")
+    print("   http://localhost?state=&code=XXXXXXXX&scope=read,activity:read_all")
+    print()
+    print("3. Copy the 'code' value from the URL, then run this exchange:")
+    print("""
+   import requests
+   r = requests.post("https://www.strava.com/oauth/token", data={
+       "client_id":     "<YOUR_CLIENT_ID>",
+       "client_secret": "<YOUR_CLIENT_SECRET>",
+       "code":          "<CODE_FROM_URL>",
+       "grant_type":    "authorization_code",
+   })
+   print(r.json()["refresh_token"])   # ← store this in Databricks secrets
+""")
+    print("4. Update the secret:")
+    print("   databricks secrets put --scope strava --key refresh_token")
+    print("=" * 70)
+else:
+    print(f"Unexpected status {_test.status_code}: {_test.text}")
+
+# COMMAND ----------
+
 # MAGIC %md ## Fetch & Write Athlete Profile
 
 # COMMAND ----------
