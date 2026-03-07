@@ -60,8 +60,12 @@ print(f"LLM:        {LLM_ENDPOINT}")
 
 # COMMAND ----------
 
+# MAGIC %run ./lib/tools_strava_live
+
+# COMMAND ----------
+
 # Merge all tools into one list
-coaching_tools = data_tools + analysis_tools + planning_tools
+coaching_tools = data_tools + analysis_tools + planning_tools + strava_live_tools
 
 print(f"✅ {len(coaching_tools)} coaching tools registered:")
 for t in coaching_tools:
@@ -121,6 +125,12 @@ Tool selection guide:
 - Route suggestion → suggest_route
 - TSS estimation → estimate_ride_tss
 - Pacing for a target TSS → plan_ride_pacing
+
+Live Strava data (use when asking about today/this week or data not yet in Delta):
+- Fresh recent rides → strava_get_recent_activities
+- Full detail on a specific ride → strava_get_activity_detail
+- Raw power/HR stream analysis → strava_get_activity_streams
+- Lifetime/YTD volume stats → strava_get_athlete_stats
 
 What you never do:
 - Give generic cookie-cutter advice
