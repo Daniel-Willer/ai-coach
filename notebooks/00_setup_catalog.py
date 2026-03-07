@@ -614,6 +614,87 @@ USING DELTA
 """)
 print("✅ coach.workout_feedback")
 
+# coach.conversation_sessions
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CATALOG}.coach.conversation_sessions (
+  session_id     STRING NOT NULL,
+  athlete_id     STRING,
+  title          STRING,
+  started_at     TIMESTAMP,
+  updated_at     TIMESTAMP,
+  message_count  INT,
+  summary        STRING
+)
+USING DELTA
+""")
+print("✅ coach.conversation_sessions")
+
+# coach.conversation_messages
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CATALOG}.coach.conversation_messages (
+  msg_id          STRING NOT NULL,
+  session_id      STRING,
+  athlete_id      STRING,
+  seq             INT,
+  role            STRING,
+  content         STRING,
+  tool_calls_json STRING,
+  ts              TIMESTAMP
+)
+USING DELTA
+PARTITIONED BY (session_id)
+""")
+print("✅ coach.conversation_messages")
+
+# coach.insights
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CATALOG}.coach.insights (
+  insight_id    STRING NOT NULL,
+  athlete_id    STRING,
+  category      STRING,
+  severity      STRING,
+  title         STRING,
+  body          STRING,
+  action_prompt STRING,
+  is_read       BOOLEAN,
+  created_at    TIMESTAMP
+)
+USING DELTA
+""")
+print("✅ coach.insights")
+
+# coach.personal_records
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CATALOG}.coach.personal_records (
+  record_id       STRING NOT NULL,
+  athlete_id      STRING,
+  duration_label  STRING,
+  duration_sec    INT,
+  power_watts     INT,
+  wkg             DOUBLE,
+  activity_id     STRING,
+  recorded_at     DATE,
+  is_alltime_pr   BOOLEAN
+)
+USING DELTA
+""")
+print("✅ coach.personal_records")
+
+# gold.fitness_trajectory
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CATALOG}.gold.fitness_trajectory (
+  athlete_id  STRING NOT NULL,
+  date        DATE   NOT NULL,
+  ctl         DOUBLE,
+  atl         DOUBLE,
+  tsb         DOUBLE,
+  is_actual   BOOLEAN,
+  source      STRING
+)
+USING DELTA
+""")
+print("✅ gold.fitness_trajectory")
+
 # COMMAND ----------
 
 # MAGIC %md ## Verify Setup
