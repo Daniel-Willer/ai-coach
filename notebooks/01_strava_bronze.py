@@ -35,6 +35,20 @@ print(f"Fetch streams: {FETCH_STREAMS}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Check Strava secret keys
+# Check Strava secret keys in Databricks
+secret_scope = "strava"
+secret_keys = ["client_id", "client_secret", "refresh_token"]
+
+for key in secret_keys:
+    try:
+        value = dbutils.secrets.get(scope=secret_scope, key=key)
+        print(f"✅ Secret '{key}' exists and is length {len(value)}")
+    except Exception as e:
+        print(f"❌ Secret '{key}' is missing or not accessible: {e}")
+
+# COMMAND ----------
+
 # MAGIC %md ## Strava Client
 
 # COMMAND ----------
@@ -198,6 +212,22 @@ elif _test.status_code == 401:
     print("=" * 70)
 else:
     print(f"Unexpected status {_test.status_code}: {_test.text}")
+
+# COMMAND ----------
+
+  import requests                                           
+                                                                                                                                                        
+  r = requests.post("https://www.strava.com/oauth/token", data={                                                                                        
+      "client_id":     dbutils.secrets.get(scope="strava", key="client_id"),                                                                            
+      "client_secret": dbutils.secrets.get(scope="strava", key="client_secret"),                                                                        
+      "code":          "40ce8d74e6fe73e4b6ea819276c9b213561c9e63",   # ← the code from the URL
+      "grant_type":    "authorization_code",                                                                                                            
+  })                                                        
+                                                                                                                                                        
+  data = r.json()                                                                                                                                       
+  print("Status:", r.status_code)
+  print("Scope granted:", data.get("scope"))                                                                                                            
+  print("New refresh_token:", data.get("refresh_token"))    
 
 # COMMAND ----------
 

@@ -160,13 +160,14 @@ print(f"✅ Athlete record saved: {NAME} ({ATHLETE_ID})")
 
 # COMMAND ----------
 
+# DBTITLE 1,Load Goal Events from athlete config.yaml
 # ── LOAD GOALS FROM YAML ──────────────────────────────────
 import yaml
 import os
 from datetime import datetime, date
 import uuid
 
-goals_path = "/Users/danielwiller38@gmail.com/ai-coach/config/event-goal-config.yaml"
+goals_path = "/Workspace/Users/danielwiller38@gmail.com/ai-coach/config/event-goal-config.yaml"
 if os.path.exists(goals_path):
     with open(goals_path, "r") as f:
         yaml_goals = yaml.safe_load(f)
@@ -199,6 +200,7 @@ if GOAL_EVENTS:
         StructField("created_at", TimestampType(), True),
     ])
 
+    # Create a temp view for upsert
     goals_rows = [{
         "goal_id":    str(uuid.uuid4()),
         "athlete_id": ATHLETE_ID,
@@ -210,17 +212,30 @@ if GOAL_EVENTS:
         "notes":      g["notes"],
         "created_at": datetime.now(),
     } for g in GOAL_EVENTS]
-
     df_goals = spark.createDataFrame(goals_rows, schema=goals_schema)
-    df_goals.write.format("delta").mode("append") \
-        .option("mergeSchema", "true") \
-        .saveAsTable(f"{CATALOG}.coach.athlete_goals")
+    df_goals.createOrReplaceTempView("goals_upsert")
 
-    print(f"✅ {len(GOAL_EVENTS)} goal events saved")
+    # Use Delta Lake MERGE to deduplicate on athlete_id, event_name, event_date
+    spark.sql(f"""
+    MERGE INTO {CATALOG}.coach.athlete_goals AS target
+    USING goals_upsert AS source
+    ON target.athlete_id = source.athlete_id
+      AND target.event_name = source.event_name
+      AND target.event_date = source.event_date
+    WHEN MATCHED THEN UPDATE SET
+        priority    = source.priority,
+        event_type  = source.event_type,
+        target      = source.target,
+        notes       = source.notes,
+        created_at  = source.created_at
+    WHEN NOT MATCHED THEN INSERT *
+    """)
+
+    print(f"✅ {len(GOAL_EVENTS)} goal events saved (deduplicated)")
     for g in GOAL_EVENTS:
         print(f"   [{g['priority']}] {g['event_name']} — {g['event_date']}")
 else:
-    print("No goal events defined. Edit event-goal-config.yaml or GOAL_EVENTS list above and re-run.")
+    print("No goal events defined. Edit event-goal-config.yaml or GOAL_EVENTS list and re-run.")
 
 # COMMAND ----------
 

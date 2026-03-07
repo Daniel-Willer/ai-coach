@@ -1,7 +1,7 @@
-- event_name: Gran Fondo Whistler
+- event_name: Century
   event_date: "2026-07-20"
   priority: A
-  event_type: Race
+  event_type: Solo Ride
   target: "Finish under 5h"
   notes: "Main season goal"
 
@@ -10,4 +10,11 @@
   priority: B
   event_type: Adventure
   target: "Complete 150km route"
+  notes: "Test endurance"
+
+- event_name: Ride 4000 mi this year
+  event_date: "2026-09-15"
+  priority: A
+  event_type: Year Long
+  target: "Complete goal of 4000 mi this year"
   notes: "Test endurance"
