@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 # MAGIC %md
 # MAGIC # 00 — Setup ai_coach Catalog
 # MAGIC
@@ -531,6 +530,7 @@ print("✅ features.athlete_daily")
 
 # COMMAND ----------
 
+# DBTITLE 1,Coach Schema Tables
 # coach.training_plans
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {CATALOG}.coach.training_plans (
@@ -557,7 +557,7 @@ CREATE TABLE IF NOT EXISTS {CATALOG}.coach.planned_workouts (
   athlete_id      STRING,
   scheduled_date  DATE,
   workout_type    STRING,
-  duration_min    INT,
+  duration_min    DOUBLE,
   instructions    STRING,
   tss_target      DOUBLE,
   completed       BOOLEAN,

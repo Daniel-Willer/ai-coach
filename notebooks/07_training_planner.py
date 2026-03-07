@@ -39,6 +39,7 @@ print(f"Athlete:  {ATHLETE_ID}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Ensure Tables Exist
 from pyspark.sql import SparkSession
 spark = SparkSession.builder.getOrCreate()
 
@@ -306,7 +307,7 @@ def generate_and_save_plan(athlete_id: str, dry_run: bool = False):
     goal = spark.sql(f"""
         SELECT event_name, event_date
         FROM {CATALOG}.coach.athlete_goals
-        WHERE athlete_id = '{athlete_id}' AND priority = 1
+        WHERE athlete_id = '{athlete_id}' AND priority = 'A'
         ORDER BY event_date LIMIT 1
     """).collect()
 
@@ -364,14 +365,14 @@ def generate_and_save_plan(athlete_id: str, dry_run: bool = False):
     plan_rows.append({
         "plan_id": plan_id,
         "athlete_id": athlete_id,
+        "created_at": datetime.now(),
         "phase": weeks[0]["phase"] if weeks else "base",
         "start_date": start_date,
         "end_date": goal_date,
-        "goal_event_name": goal_name,
-        "goal_event_date": goal_date,
-        "target_ctl_end": target_ctl,
+        "weekly_hours": available_hours,
+        "focus": goal_name,
         "notes": f"Auto-generated plan: {len(weeks)} weeks, base TSS {round(base_weekly_tss)}",
-        "created_at": datetime.now(),
+        "status": "generated"
     })
 
     if dry_run:
@@ -382,14 +383,14 @@ def generate_and_save_plan(athlete_id: str, dry_run: bool = False):
     plan_schema = StructType([
         StructField("plan_id",          StringType(),    False),
         StructField("athlete_id",       StringType(),    True),
+        StructField("created_at",       TimestampType(), True),
         StructField("phase",            StringType(),    True),
         StructField("start_date",       DateType(),      True),
         StructField("end_date",         DateType(),      True),
-        StructField("goal_event_name",  StringType(),    True),
-        StructField("goal_event_date",  DateType(),      True),
-        StructField("target_ctl_end",   DoubleType(),    True),
+        StructField("weekly_hours",     DoubleType(),    True),
+        StructField("focus",            StringType(),    True),
         StructField("notes",            StringType(),    True),
-        StructField("created_at",       TimestampType(), True),
+        StructField("status",           StringType(),    True),
     ])
 
     workout_schema = StructType([
@@ -425,8 +426,11 @@ def generate_and_save_plan(athlete_id: str, dry_run: bool = False):
 
 # COMMAND ----------
 
-# Generate the plan (set dry_run=True to preview first)
+# DBTITLE 1,[Error Explanation] Delta Schema Conflict on duration_min
+
+
 plan_id = generate_and_save_plan(ATHLETE_ID, dry_run=False)
+
 
 # COMMAND ----------
 
