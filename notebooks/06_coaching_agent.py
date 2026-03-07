@@ -64,8 +64,33 @@ print(f"LLM:        {LLM_ENDPOINT}")
 
 # COMMAND ----------
 
+# MAGIC %run ./lib/tools_garmin_live
+
+# COMMAND ----------
+
+# MAGIC %run ./lib/tools_intervals_live
+
+# COMMAND ----------
+
+# MAGIC %run ./lib/tools_weather_live
+
+# COMMAND ----------
+
+# MAGIC %run ./lib/tools_rwgps_live
+
+# COMMAND ----------
+
 # Merge all tools into one list
-coaching_tools = data_tools + analysis_tools + planning_tools + strava_live_tools
+coaching_tools = (
+    data_tools +
+    analysis_tools +
+    planning_tools +
+    strava_live_tools +
+    garmin_live_tools +
+    intervals_live_tools +
+    weather_live_tools +
+    rwgps_live_tools
+)
 
 print(f"✅ {len(coaching_tools)} coaching tools registered:")
 for t in coaching_tools:
@@ -126,11 +151,33 @@ Tool selection guide:
 - TSS estimation → estimate_ride_tss
 - Pacing for a target TSS → plan_ride_pacing
 
-Live Strava data (use when asking about today/this week or data not yet in Delta):
+Live Strava (today/this week or data not yet in Delta):
 - Fresh recent rides → strava_get_recent_activities
 - Full detail on a specific ride → strava_get_activity_detail
 - Raw power/HR stream analysis → strava_get_activity_streams
 - Lifetime/YTD volume stats → strava_get_athlete_stats
+
+Live Garmin (recovery signals):
+- Sleep quality, stages, overnight HRV → garmin_get_sleep
+- Body battery, stress, resting HR → garmin_get_daily_stats
+- HRV status + trend → garmin_get_hrv_status
+- Current body battery → garmin_get_body_battery_today
+
+Live Intervals.icu (cross-platform analytics):
+- Fresh CTL/ATL/TSB + VO2max → intervals_get_fitness
+- Unified activity list across all platforms → intervals_get_recent_activities
+- HRV, sleep, mood, fatigue scores → intervals_get_wellness
+- Best power curve → intervals_get_power_curve
+
+Weather (outdoor training decisions):
+- Current conditions + riding verdict → weather_get_current
+- 5-day forecast with daily riding verdict → weather_get_forecast
+- Best window to ride today → weather_get_best_riding_window
+
+RideWithGPS (route planning):
+- Recent trips → rwgps_get_recent_trips
+- Search saved routes by keyword/distance → rwgps_search_routes
+- Route detail with elevation profile → rwgps_get_route
 
 What you never do:
 - Give generic cookie-cutter advice

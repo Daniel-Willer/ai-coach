@@ -3,6 +3,22 @@
     "strava": {
       "command": "python",
       "args": ["mcp/strava/server.py"]
+    },
+    "garmin": {
+      "command": "python",
+      "args": ["mcp/garmin/server.py"]
+    },
+    "intervals": {
+      "command": "python",
+      "args": ["mcp/intervals/server.py"]
+    },
+    "openweather": {
+      "command": "python",
+      "args": ["mcp/openweather/server.py"]
+    },
+    "rwgps": {
+      "command": "python",
+      "args": ["mcp/rwgps/server.py"]
     }
   }
 }
