@@ -1,43 +1,66 @@
-### **Privacy Policy for AI-Coach**
+# AI Cycling Coach
 
-### 1. Introduction
-This privacy policy outlines how Garmin Connect activity data is handled by the application **AI-Coach**. This application is for my personal use only and is not a commercial product.
+A personal AI coaching system built on Databricks that connects your training data from Strava, Garmin, RideWithGPS, and Intervals.icu — then lets you have real conversations with a coach that actually knows your numbers.
 
-### 2. Intellectual Property
-The concept and design of this application are my personal property. It is not to be reused, reproduced, or distributed without my explicit written permission.
-
-### 3. Data Collection
-I will collect the following types of data from your Garmin Connect account:
-
-* **Activity Data**: This includes detailed activity files (FIT files), summaries of activities (e.g., duration, distance, pace, elevation), and metrics such as heart rate, power, cadence, and GPS data.
-* **Health Data**: This includes daily summaries of health metrics like steps, calories, sleep data, heart rate variability (HRV), and resting heart rate.
-* **Courses**: I will access and analyze cycling course information, including the route, waypoints, and elevation profiles.
-* **Training Data**: This includes details about training plans, structured workouts, and their completion status.
-
-The collection of this data is solely for my personal use in analyzing and understanding my fitness and activity patterns.
-
-### 4. Data Use
-The data collected will be used exclusively for the following purposes:
-
-* **Personal Analysis**: To analyze and visualize my own fitness and health trends.
-* **AI Agent Development**: To securely train and test AI Agents within my private Databricks environment. These agents are for my personal use only and will not be used for commercial purposes.
+> **New here?** Start with [Getting Started](docs/01-getting-started.md).
 
 ---
-### 5. Architecture, Data, and Security
-* **Delta Lake Architecture**: Athlete profiles, goals/events, activities, and health data are stored in modular Delta tables. Profiles and goals are now loaded from YAML files for improved scalability and manageability.
-* **Privacy & Security**: All API credentials and personal data are secured via Databricks secrets and private workspace storage. No data is shared outside this environment.
-* **AI Agent Workflow**: AI coaching agents query Delta tables for athlete profiles, goals, and training metrics using secure, structured tools. They do not directly access raw data or external connections.
-* **Data Gaps Guidance**: If AI outputs indicate missing power, heart rate, or activity metrics:
-    - Check source Garmin/Strava API and bronze/raw tables for these columns and non-null values
-    - Verify ETL pipelines correctly extract, map, and write these fields to silver/gold layers
-    - Use power meters or HR monitors as needed to enrich activity files
+
+## What it does
+
+- Pulls all your ride data, sleep, HRV, and recovery metrics into one place
+- Calculates your fitness (CTL), fatigue (ATL), and form (TSB) daily
+- Lets you chat with an AI coach that answers questions grounded in your actual data
+- Prescribes specific workouts based on your current form, goals, and time available
+- Detects training imbalances, power curve trends, and recovery warning signs
+
+**Example questions you can ask:**
+- *"How am I doing? Give me a full overview."*
+- *"How did my last ride go? Give me real feedback."*
+- *"What should I do today given my current form?"*
+- *"Am I training in the right zones or is something off?"*
+- *"Should I ride outside today or is the weather bad?"*
+- *"Generate a training plan for this week."*
 
 ---
-### 6. Data Sharing
-Your data will **not be shared, sold, or distributed** to any third parties. It is for personal, non-commercial use only.
 
-### 7. User Consent
-By authorizing this application to access your Garmin Connect account, you are providing consent for the collection and use of your data as described in this policy.
+## Documentation
 
-### 8. Contact
-If you have any questions or concerns about this privacy policy, architecture, or the use of your data, you can contact me via Github.
+| Guide | What it covers |
+|-------|---------------|
+| [Getting Started](docs/01-getting-started.md) | What this is, how it works, what you'll need |
+| [Setup Guide](docs/02-setup.md) | Step-by-step first-time setup (accounts, secrets, notebooks) |
+| [Your Data Sources](docs/03-data-sources.md) | Connecting Strava, Garmin, RideWithGPS, Intervals.icu, weather |
+| [Running the Pipeline](docs/04-running-the-pipeline.md) | Keeping your data fresh, notebook execution order |
+| [Talking to Your Coach](docs/05-talking-to-your-coach.md) | How to ask questions, example conversations, what the coach can do |
+| [Training Concepts](docs/06-training-concepts.md) | FTP, CTL/ATL/TSB, power zones, TSS explained simply |
+| [Troubleshooting](docs/07-troubleshooting.md) | Common errors and how to fix them |
+
+---
+
+## Quick reference — notebook order
+
+```
+00_setup_catalog.py       ← run once to create tables
+00b_garmin_bronze_v2.py   ← run to import Garmin data
+01_strava_bronze.py       ← run to import Strava data
+02_bronze_to_silver.py    ← cleans and unifies all activity data
+03_silver_to_gold.py      ← calculates CTL/ATL/TSB, zones, power curves
+04_feature_refresh.py     ← builds the AI's feature table
+05_athlete_setup.py       ← run once (or when you update your profile)
+06_coaching_agent.py      ← talk to your coach here
+07_training_planner.py    ← generate and save a multi-week training plan
+08_eval_harness.py        ← test suite for evaluating coach quality
+```
+
+---
+
+## Data sources
+
+| Source | What it provides | Required |
+|--------|-----------------|----------|
+| Strava | All ride activity data, power, HR, GPS | Yes |
+| Garmin Connect | Sleep, HRV, body battery, resting HR, stress | Recommended |
+| RideWithGPS | Saved routes, elevation profiles, trip history | Optional |
+| Intervals.icu | Cross-platform training load, wellness data | Optional |
+| OpenWeatherMap | Current conditions and forecast for route planning | Optional |
