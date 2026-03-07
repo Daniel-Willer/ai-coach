@@ -1,0 +1,16 @@
+# Secrets — never commit these
+mcp/strava/.env
+mcp/garmin/.env
+mcp/**/.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
